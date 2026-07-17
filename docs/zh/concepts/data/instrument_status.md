@@ -1,0 +1,74 @@
+# InstrumentStatus
+
+`InstrumentStatus` 表示某个金融工具交易状态的变化。它记录交易场所的状态事件，
+例如开盘前（pre-open）、交易中（trading）、暂停（halt）、停牌（pause）、收盘（close）
+以及卖空限制（short-selling restriction）状态变化等。
+
+## 字段
+
+| 字段                       | Rust 类型              | Python 类型   | 是否必需/默认值 | 说明                                      |
+|-----------------------------|-------------------------|---------------|------------------|--------------------------------------------|
+| `instrument_id`             | `InstrumentId`         | `InstrumentId` | 必需            | 状态发生变化的金融工具。           |
+| `action`                    | `MarketStatusAction`   | `MarketStatusAction` | 必需 | 交易场所的状态动作。                       |
+| `ts_event`                  | `UnixNanos`            | `int`         | 必需             | 事件时间戳（纳秒）。            |
+| `ts_init`                   | `UnixNanos`            | `int`         | 必需             | 初始化时间戳（纳秒）。   |
+| `reason`                    | `Option<Ustr>`         | `str \| None`  | `None`           | 提供时表示状态变化的原因。  |
+| `trading_event`             | `Option<Ustr>`         | `str \| None`  | `None`           | 提供时表示交易场所的事件标签。           |
+| `is_trading`                | `Option<bool>`         | `bool \| None` | `None`           | 已知时表示是否允许交易。     |
+| `is_quoting`                | `Option<bool>`         | `bool \| None` | `None`           | 已知时表示是否允许报价。     |
+| `is_short_sell_restricted`  | `Option<bool>`         | `bool \| None` | `None`           | 已知时表示卖空限制状态。   |
+
+## 行为
+
+- 可选布尔字段允许适配器（adapter）在保留交易场所提供的状态信息时，无需进行猜测。
+- `action` 提供归一化的高层状态，即使交易场所特定的细节也存储在 `reason` 或
+  `trading_event` 中。
+- 策略（strategy）可以通过 `on_instrument_status(...)` 处理状态更新。
+
+## 示例
+
+```rust tab="Rust"
+use nautilus_core::UnixNanos;
+use nautilus_model::{
+    data::InstrumentStatus,
+    enums::MarketStatusAction,
+    identifiers::InstrumentId,
+};
+use ustr::Ustr;
+
+let status = InstrumentStatus::new(
+    InstrumentId::from("AAPL.XNAS"),
+    MarketStatusAction::Trading,
+    UnixNanos::from(1_000_000_000),
+    UnixNanos::from(1_000_000_100),
+    Some(Ustr::from("Normal trading")),
+    Some(Ustr::from("MARKET_OPEN")),
+    Some(true),
+    Some(true),
+    Some(false),
+);
+```
+
+```python tab="Python"
+from nautilus_trader.model import InstrumentId
+from nautilus_trader.model import InstrumentStatus
+from nautilus_trader.model.enums import MarketStatusAction
+
+status = InstrumentStatus(
+    instrument_id=InstrumentId.from_str("AAPL.XNAS"),
+    action=MarketStatusAction.TRADING,
+    ts_event=1_000_000_000,
+    ts_init=1_000_000_100,
+    reason="Normal trading",
+    trading_event="MARKET_OPEN",
+    is_trading=True,
+    is_quoting=True,
+    is_short_sell_restricted=False,
+)
+```
+
+## 相关指南
+
+- [InstrumentClose](instrument_close.md) 介绍了金融工具收盘价事件。
+- [Instruments](../instruments/) 介绍了金融工具的定义。
+- [Python API 参考](/docs/python-api-latest/model/data.html) 列出了 Python 成员。
